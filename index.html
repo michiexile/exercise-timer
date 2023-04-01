@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exercise Timer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
+          crossorigin="anonymous"></script>
+</head>
+<body class="container p-3">
+<div class="container mt-3 mx-3">
+  <div class="card">
+    <div class="card-body">
+      <h1 class="card-title">Exercise Timer</h1>
+      <p class="card-text">
+        Set up the number of repetitions, the pause interval between them,
+        and click Go when you're ready to start.
+      </p>
+      <div class="input-group">
+        <span class="input-group-text">Do </span>
+        <input value="3" id="repcount" type="text" class="form-control" aria-label="Repetition count">
+        <span class="input-group-text"> x </span>
+        <input value="30" id="replength" type="text" class="form-control" aria-label="Repetition length (seconds)">
+        <span class="input-group-text"> seconds</span>
+      </div>
+      <div class="input-group mt-2">
+        <span class="input-group-text">And then rest</span>
+        <input value="10" id="restlength" type="text" class="form-control" aria-label="Rest length (seconds)">
+        <span class="input-group-text"> seconds</span>
+      </div>
+        <a href="#" class="btn btn-primary w-100 mt-3" id="startbtn">Start in 3... 2... 1...</a>
+        <a href="#" class="btn btn-danger w-100 mt-3 invisible" id="endbtn">Stop countdown</a>
+    </div>
+  </div>
+</div>
+<script>
+const synth = window.speechSynthesis;
+
+const repcount = document.querySelector("#repcount");
+const replength = document.querySelector("#replength");
+const restlength = document.querySelector("#restlength");
+
+const startbtn = document.querySelector("#startbtn");
+const endbtn = document.querySelector("#endbtn");
+
+let timeoutIDs = {
+    countdown: [],
+    repstarts: [],
+    repends: [],
+}
+
+
+// parameters for the timing
+const sec = 1000; // seconds in milliseconds
+const time_between_countdowns = 2*sec;
+const repstart_text = "Repetition {count} starting";
+const repend_text = "Repetition {count} ending, {pause} seconds pause";
+const final_text = "And you are done! Good job!";
+
+endbtn.onclick = (event) => {
+    while(timeoutIDs.countdown.length>0) {
+        clearTimeout(timeoutIDs.countdown.shift());
+    }
+    while(timeoutIDs.repstarts.length>0) {
+        clearTimeout(timeoutIDs.repstarts.shift());
+    }
+    while(timeoutIDs.repends.length>0) {
+        clearTimeout(timeoutIDs.repends.shift());
+    }
+    endbtn.classList.remove("visible");
+    endbtn.classList.add("invisible");
+}
+
+startbtn.onclick = (event) => {
+    event.preventDefault();
+
+    repstart_time = (count) => (3*time_between_countdowns + count*((+replength.value) + (+restlength.value))*sec);
+    repend_time = (count) => (3*time_between_countdowns + count*((+replength.value) + (+restlength.value))*sec + (+restlength.value)*sec);
+
+    const countdown = [
+      new SpeechSynthesisUtterance("three"),
+      new SpeechSynthesisUtterance("two"),
+      new SpeechSynthesisUtterance("one"),
+    ];
+    const final_utterance = new SpeechSynthesisUtterance(final_text);
+
+    timeoutIDs.countdown.push(setTimeout(() => synth.speak(countdown[0])), 0*time_between_countdowns);
+    timeoutIDs.countdown.push(setTimeout(() => synth.speak(countdown[1])), 1*time_between_countdowns);
+    timeoutIDs.countdown.push(setTimeout(() => synth.speak(countdown[2])), 2*time_between_countdowns);
+
+    endbtn.classList.remove("invisible");
+    endbtn.classList.add("visible");
+
+    for(i=0; i<+repcount.value; i++) {
+        let repstart_utterance = new SpeechSynthesisUtterance(repstart_text.replace("{count}", i + 1));
+        let repend_utterance = new SpeechSynthesisUtterance(repend_text.replace("{count}", i + 1).replace("{pause}", +restlength.value));
+        timeoutIDs.repstarts.push(setTimeout(() => synth.speak(repstart_utterance), repstart_time(i)));
+        if (i < (+repcount.value) - 1) {
+            timeoutIDs.repends.push(setTimeout(() => synth.speak(repend_utterance), repend_time(i)));
+        } else {
+            timeoutIDs.repends.push(setTimeout(() => {
+                   synth.speak(final_utterance);
+                   endbtn.classList.remove("visible");
+                   endbtn.classList.add("invisible");
+                }, repend_time(i)
+            ));
+        }
+    }
+}
+</script>
+</body>
+</html>
